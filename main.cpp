@@ -252,6 +252,32 @@ public:
     }
 };
 
+void takeHostelComplaint()
+{
+    string complaint;
+    cout << "\tEnter your hostel complaint: ";
+    cin.ignore(); // to ignore the newline character left by previous input
+    getline(cin, complaint);
+
+    ofstream outFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel Complaint.txt", ios::app);
+    outFile << complaint << endl;
+    outFile.close();
+    cout << "\tHostel complaint recorded successfully." << endl;
+}
+
+void takeMessComplaint()
+{
+    string complaint;
+    cout << "\tEnter your mess complaint: ";
+    cin.ignore(); // to ignore the newline character left by previous input
+    getline(cin, complaint);
+
+    ofstream outFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Mess Complaint.txt", ios::app);
+    outFile << complaint << endl;
+    outFile.close();
+    cout << "\tMess complaint recorded successfully." << endl;
+}
+
 int main()
 {
     // Initialize number of beds
@@ -292,7 +318,9 @@ int main()
         int val;
         cout << "\t*******************************" << endl;
         cout << "\t1. Reserve A Bed." << endl;
-        cout << "\t2. Exit" << endl;
+        cout << "\t2. Hostel Complaint" << endl;
+        cout << "\t3. Mess Complaint" << endl;
+        cout << "\t4. Exit" << endl;
         cout << "\tEnter Choice: ";
         cin >> val;
 
@@ -323,6 +351,18 @@ int main()
             Sleep(5000);
         }
         else if (val == 2)
+        {
+            system("cls");
+            takeHostelComplaint();
+            Sleep(3000);
+        }
+        else if (val == 3)
+        {
+            system("cls");
+            takeMessComplaint();
+            Sleep(3000);
+        }
+        else if (val == 4)
         {
             system("cls");
             exit = true;
