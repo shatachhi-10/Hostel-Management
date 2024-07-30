@@ -131,7 +131,6 @@
 // }
 
 
-
 #include <iostream>
 #include <fstream>
 #include <windows.h>
@@ -151,18 +150,27 @@ public:
         Bed = bed;
         Rent = rent;
     }
+
     string getName()
     {
         return Name;
     }
+
     int getRent()
     {
         return Rent;
     }
+
     int getBed()
     {
         return Bed;
     }
+
+    void setBed(int bed)
+    {
+        Bed = bed;
+    }
+
     bool reserve()
     {
         ifstream in("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel.txt");
@@ -212,26 +220,32 @@ private:
 
 public:
     Student() : Name(""), RollNo(""), Address("") {}
+
     void setName(string name)
     {
         Name = name;
     }
+
     void setRollNo(string rollNo)
     {
         RollNo = rollNo;
     }
+
     void setAddress(string address)
     {
         Address = address;
     }
+
     string getName()
     {
         return Name;
     }
+
     string getRollNo()
     {
         return RollNo;
     }
+
     string getAddress()
     {
         return Address;
@@ -240,7 +254,31 @@ public:
 
 int main()
 {
-    Hostel h("Sarojini", 5000, 1);
+    // Initialize number of beds
+    int initialBeds = 3;
+    int availableBeds = initialBeds;
+    string hostelName = "Sarojini";
+    int rent = 5000;
+
+    // Read the number of available beds from the file if it exists
+    ifstream inFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel.txt");
+    if (inFile.is_open())
+    {
+        string line;
+        if (getline(inFile, line))
+        {
+            int pos = line.find_last_of(':');
+            if (pos != string::npos)
+            {
+                string bedCount = line.substr(pos + 1);
+                availableBeds = stoi(bedCount);
+            }
+        }
+        inFile.close();
+    }
+
+    Hostel h(hostelName, rent, availableBeds);
+
     ofstream out("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel.txt");
     out << "\t" << h.getName() << " : " << h.getRent() << " : " << h.getBed() << endl;
     cout << "Hostel Data Saved" << endl;
@@ -292,4 +330,11 @@ int main()
             Sleep(3000);
         }
     }
+
+    // Update the file with the final number of beds before exiting
+    ofstream finalOut("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel.txt");
+    finalOut << "\t" << h.getName() << " : " << h.getRent() << " : " << h.getBed() << endl;
+    finalOut.close();
+
+    return 0;
 }
