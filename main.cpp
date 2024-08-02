@@ -142,6 +142,7 @@ class Hostel
 private:
     string Name;
     int Rent, Bed;
+    int TotalRentCollected;
 
 public:
     Hostel(string name, int rent, int bed)
@@ -149,6 +150,7 @@ public:
         Name = name;
         Bed = bed;
         Rent = rent;
+        TotalRentCollected = 0;
     }
 
     string getName()
@@ -171,7 +173,17 @@ public:
         Bed = bed;
     }
 
-    bool reserve()
+    int getTotalRentCollected()
+    {
+        return TotalRentCollected;
+    }
+
+    void updateTotalRentCollected(int amount)
+    {
+        TotalRentCollected += amount;
+    }
+
+    bool reserve(string studentName, string rollNo)
     {
         ifstream in("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel.txt");
         ofstream out("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Temp.txt");
@@ -203,6 +215,14 @@ public:
 
         if (reserved)
         {
+            // Log rent information
+            ofstream rentOut("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Rent.txt", ios::app);
+            rentOut << studentName << " (" << rollNo << ") : " << Rent << endl;
+            rentOut.close();
+
+            // Update total rent collected
+            updateTotalRentCollected(Rent);
+
             cout << "\tBed reserved successfully" << endl;
         }
         else
@@ -210,6 +230,71 @@ public:
             cout << "\tSorry, no bed available or error occurred!!" << endl;
         }
         return reserved;
+    }
+
+    bool returnBed(string rollNo)
+    {
+        ifstream inFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Student.txt");
+        ofstream tempFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Temp.txt");
+
+        bool found = false;
+        string line, studentName;
+        while (getline(inFile, line))
+        {
+            if (line.find(rollNo) == string::npos)
+            {
+                tempFile << line << endl;
+            }
+            else
+            {
+                found = true;
+                int pos = line.find(':');
+                studentName = line.substr(0, pos);
+            }
+        }
+        inFile.close();
+        tempFile.close();
+
+        if (found)
+        {
+            remove("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Student.txt");
+            rename("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Temp.txt", "C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Student.txt");
+
+            // Increment the bed count
+            Bed += 1;
+
+            // Remove entry from Rent.txt
+            ifstream rentFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Rent.txt");
+            ofstream tempRentFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\TempRent.txt");
+
+            string rentLine;
+            while (getline(rentFile, rentLine))
+            {
+                if (rentLine.find(rollNo) == string::npos)
+                {
+                    tempRentFile << rentLine << endl;
+                }
+                else
+                {
+                    int pos = rentLine.find_last_of(':');
+                    string rentAmountStr = rentLine.substr(pos + 2);
+                    int rentAmount = stoi(rentAmountStr);
+                    updateTotalRentCollected(-rentAmount);
+                }
+            }
+            rentFile.close();
+            tempRentFile.close();
+
+            remove("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Rent.txt");
+            rename("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\TempRent.txt", "C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Rent.txt");
+
+            return true;
+        }
+        else
+        {
+            cout << "\tNot a valid student!" << endl;
+            return false;
+        }
     }
 };
 
@@ -281,7 +366,7 @@ void takeMessComplaint()
 int main()
 {
     // Initialize number of beds
-    int initialBeds = 3;
+    int initialBeds = 2;
     int availableBeds = initialBeds;
     string hostelName = "Sarojini";
     int rent = 5000;
@@ -320,7 +405,8 @@ int main()
         cout << "\t1. Reserve A Bed." << endl;
         cout << "\t2. Hostel Complaint" << endl;
         cout << "\t3. Mess Complaint" << endl;
-        cout << "\t4. Exit" << endl;
+        cout << "\t4. Return" << endl;
+        cout << "\t5. Exit" << endl;
         cout << "\tEnter Choice: ";
         cin >> val;
 
@@ -338,7 +424,7 @@ int main()
             cin >> address;
             s.setAddress(address);
 
-            if (h.getBed() > 0 && h.reserve())
+            if (h.getBed() > 0 && h.reserve(name, rollno))
             {
                 ofstream outFile("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Student.txt", ios::app);
                 outFile << "\t" << s.getName() << "  :  " << s.getRollNo() << " : " << s.getAddress() << endl;
@@ -365,6 +451,23 @@ int main()
         else if (val == 4)
         {
             system("cls");
+            string rollno;
+            cout << "\tEnter Rollno of Student: ";
+            cin >> rollno;
+
+            if (h.returnBed(rollno))
+            {
+                cout << "\tBed returned successfully!" << endl;
+            }
+            else
+            {
+                cout << "\tReturn operation failed or student not found!" << endl;
+            }
+            Sleep(5000);
+        }
+        else if (val == 5)
+        {
+            system("cls");
             exit = true;
             cout << "Good luck" << endl;
             Sleep(3000);
@@ -374,7 +477,9 @@ int main()
     // Update the file with the final number of beds before exiting
     ofstream finalOut("C:\\Users\\shata\\OneDrive\\Desktop\\HostelManagement\\Hostel.txt");
     finalOut << "\t" << h.getName() << " : " << h.getRent() << " : " << h.getBed() << endl;
-    finalOut.close();
+     finalOut.close();
+
+    cout << "Total Rent Collected: " << h.getTotalRentCollected() << endl;
 
     return 0;
 }
