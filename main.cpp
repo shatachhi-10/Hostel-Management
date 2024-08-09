@@ -1,19 +1,22 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <limits.h>
-#include <unistd.h>
-#include <windows.h>
-using namespace std;
+#include <iostream>  // Include the input-output stream library for cin, cout, etc.
+#include <fstream>   // Include file stream library for file operations
+#include <sstream>   // Include string stream library for string manipulation
+#include <limits.h>  // Include limits library for constants like PATH_MAX
+#include <unistd.h>  // Include POSIX library for getcwd function
+#include <windows.h> // Include Windows library for Sleep function
+using namespace std; // Use the standard namespace
 
+// Define a class named Hostel
 class Hostel
 {
 private:
-    string Name;
-    int Rent, Bed;
-    int TotalRentCollected;
+    string Name;            // Name of the hostel
+    int Rent;               // Rent per bed in the hostel
+    int Bed;                // Number of available beds
+    int TotalRentCollected; // Total rent collected
 
 public:
+    // Constructor to initialize the hostel data
     Hostel(string name, int rent, int bed)
     {
         Name = name;
@@ -22,47 +25,54 @@ public:
         TotalRentCollected = 0;
     }
 
+    // Getter function for hostel name
     string getName()
     {
         return Name;
     }
 
+    // Getter function for rent
     int getRent()
     {
         return Rent;
     }
 
+    // Getter function for number of beds
     int getBed()
     {
         return Bed;
     }
 
+    // Setter function for number of beds
     void setBed(int bed)
     {
         Bed = bed;
     }
 
+    // Getter function for total rent collected
     int getTotalRentCollected()
     {
         return TotalRentCollected;
     }
 
+    // Function to update the total rent collected
     void updateTotalRentCollected(int amount)
     {
         TotalRentCollected += amount;
     }
 
+    // Function to reserve a bed for a student and update files accordingly
     bool reserve(string studentName, string rollNo, const string &filePath)
     {
-        ifstream in(filePath + "Hostel.txt");
-        ofstream out(filePath + "Temp.txt");
+        ifstream in(filePath + "Hostel.txt"); // Open the hostel data file for reading
+        ofstream out(filePath + "Temp.txt");  // Open a temporary file for writing updates
 
-        bool reserved = false;
+        bool reserved = false; // Flag to indicate if the reservation was successful
         string line;
-        while (getline(in, line))
+        while (getline(in, line)) // Read each line of the hostel data file
         {
-            int pos = line.find(Name);
-            if (pos != string::npos && Bed > 0)
+            int pos = line.find(Name);          // Find the position of the hostel name in the line
+            if (pos != string::npos && Bed > 0) // If the hostel name is found and there are available beds
             {
                 // Decrement the bed count
                 Bed -= 1;
@@ -75,16 +85,16 @@ public:
                 line.replace(bedPos + 1, string::npos, strBed);
                 reserved = true;
             }
-            out << line << endl;
+            out << line << endl; // Write the updated line to the temporary file
         }
-        out.close();
-        in.close();
-        remove((filePath + "Hostel.txt").c_str());
-        rename((filePath + "Temp.txt").c_str(), (filePath + "Hostel.txt").c_str());
+        out.close();                                                                // Close the temporary file
+        in.close();                                                                 // Close the hostel data file
+        remove((filePath + "Hostel.txt").c_str());                                  // Remove the original hostel data file
+        rename((filePath + "Temp.txt").c_str(), (filePath + "Hostel.txt").c_str()); // Rename the temporary file to the original file name
 
-        if (reserved)
+        if (reserved) // If the reservation was successful
         {
-            // Log rent information
+            // Log rent information to Rent.txt
             ofstream rentOut(filePath + "Rent.txt", ios::app);
             rentOut << studentName << " (" << rollNo << ") : " << Rent << endl;
             rentOut.close();
@@ -101,36 +111,62 @@ public:
         return reserved;
     }
 
-    bool returnBed(string rollNo, const string &filePath)
+    // Function to handle the return of rent and bed
+    bool returnRent(string rollNo, const string &filePath)
     {
-        ifstream inFile(filePath + "Student.txt");
-        ofstream tempFile(filePath + "Temp.txt");
+        ifstream inFile(filePath + "Student.txt"); // Open the student data file for reading
+        ofstream tempFile(filePath + "Temp.txt");  // Open a temporary file for writing updates
 
-        bool found = false;
+        bool found = false; // Flag to indicate if the student was found
         string line, studentName;
-        while (getline(inFile, line))
+        while (getline(inFile, line)) // Read each line of the student data file
         {
-            if (line.find(rollNo) == string::npos)
+            if (line.find(rollNo) == string::npos) // If the roll number is not found in the line
             {
-                tempFile << line << endl;
+                tempFile << line << endl; // Write the line to the temporary file
             }
             else
             {
-                found = true;
+                found = true; // Student found
                 int pos = line.find(':');
                 studentName = line.substr(0, pos);
             }
         }
-        inFile.close();
-        tempFile.close();
+        inFile.close();   // Close the student data file
+        tempFile.close(); // Close the temporary file
 
-        if (found)
+        if (found) // If the student was found
         {
+            // Remove student entry from the Student.txt file
             remove((filePath + "Student.txt").c_str());
             rename((filePath + "Temp.txt").c_str(), (filePath + "Student.txt").c_str());
 
-            // Increment the bed count
+            // Increment the bed count in memory
             Bed += 1;
+
+            // Update Hostel.txt file
+            ifstream hostelFile(filePath + "Hostel.txt");
+            ofstream tempHostelFile(filePath + "TempHostel.txt");
+
+            while (getline(hostelFile, line))
+            {
+                int pos = line.find(Name);
+                if (pos != string::npos)
+                {
+                    stringstream ss;
+                    ss << Bed;
+                    string strBed = ss.str();
+
+                    int bedPos = line.find_last_of(':');
+                    line.replace(bedPos + 1, string::npos, strBed);
+                }
+                tempHostelFile << line << endl;
+            }
+            hostelFile.close();
+            tempHostelFile.close();
+
+            remove((filePath + "Hostel.txt").c_str());
+            rename((filePath + "TempHostel.txt").c_str(), (filePath + "Hostel.txt").c_str());
 
             // Remove entry from Rent.txt
             ifstream rentFile(filePath + "Rent.txt");
@@ -156,6 +192,7 @@ public:
 
             remove((filePath + "Rent.txt").c_str());
             rename((filePath + "TempRent.txt").c_str(), (filePath + "Rent.txt").c_str());
+            cout << "\tRent return  successfully." << endl;
 
             return true;
         }
@@ -167,68 +204,78 @@ public:
     }
 };
 
+// Define a class named Student
 class Student
 {
 private:
-    string Name, RollNo, Address;
+    string Name, RollNo, Address; // Student's name, roll number, and address
 
 public:
+    // Default constructor
     Student() : Name(""), RollNo(""), Address("") {}
 
+    // Setter function for student's name
     void setName(string name)
     {
         Name = name;
     }
 
+    // Setter function for student's roll number
     void setRollNo(string rollNo)
     {
         RollNo = rollNo;
     }
 
+    // Setter function for student's address
     void setAddress(string address)
     {
         Address = address;
     }
 
+    // Getter function for student's name
     string getName()
     {
         return Name;
     }
 
+    // Getter function for student's roll number
     string getRollNo()
     {
         return RollNo;
     }
 
+    // Getter function for student's address
     string getAddress()
     {
         return Address;
     }
 };
 
+// Function to take hostel complaints and save them to a file
 void takeHostelComplaint(const string &filePath)
 {
     string complaint;
     cout << "\tEnter your hostel complaint: ";
-    cin.ignore(); // to ignore the newline character left by previous input
-    getline(cin, complaint);
+    cin.ignore();            // Ignore the newline character left by previous input
+    getline(cin, complaint); // Get the complaint from user
 
-    ofstream outFile(filePath + "HostelComplaint.txt", ios::app);
-    outFile << complaint << endl;
-    outFile.close();
+    ofstream outFile(filePath + "HostelComplaint.txt", ios::app); // Open file for appending
+    outFile << complaint << endl;                                 // Write the complaint to the file
+    outFile.close();                                              // Close the file
     cout << "\tHostel complaint recorded successfully." << endl;
 }
 
+// Function to take mess complaints and save them to a file
 void takeMessComplaint(const string &filePath)
 {
     string complaint;
     cout << "\tEnter your mess complaint: ";
-    cin.ignore(); // to ignore the newline character left by previous input
-    getline(cin, complaint);
+    cin.ignore();            // Ignore the newline character left by previous input
+    getline(cin, complaint); // Get the complaint from user
 
-    ofstream outFile(filePath + "MessComplaint.txt", ios::app);
-    outFile << complaint << endl;
-    outFile.close();
+    ofstream outFile(filePath + "MessComplaint.txt", ios::app); // Open file for appending
+    outFile << complaint << endl;                               // Write the complaint to the file
+    outFile.close();                                            // Close the file
     cout << "\tMess complaint recorded successfully." << endl;
 }
 
@@ -254,9 +301,9 @@ int main()
     }
     currentPath.insert(currentPath.size(), "\\");
     currentPath.insert(currentPath.size(), "\\");
-    string filePath = currentPath;
+    string filePath = currentPath; // Path for file operations
 
-    // Initialize number of beds
+    // Initialize number of beds and other hostel details
     int initialBeds = 2;
     int availableBeds = initialBeds;
     string hostelName = "Sarojini";
@@ -279,31 +326,33 @@ int main()
         inFile.close();
     }
 
+    // Create a Hostel object
     Hostel h(hostelName, rent, availableBeds);
 
+    // Write hostel data to Hostel.txt
     ofstream out(filePath + "Hostel.txt");
     out << "\t" << h.getName() << " : " << h.getRent() << " : " << h.getBed() << endl;
     cout << "Hostel Data Saved" << endl;
-    out.close(); // for closing file
+    out.close(); // Close the file
 
-    Student s;
-    bool exit = false;
+    Student s;         // Create a Student object
+    bool exit = false; // Flag to exit the loop
     while (!exit)
     {
-        system("cls");
+        system("cls"); // Clear the console screen
         int val;
         cout << "\t*******************************" << endl;
         cout << "\t1. Reserve A Bed." << endl;
         cout << "\t2. HostelComplaint" << endl;
         cout << "\t3. MessComplaint" << endl;
-        cout << "\t4. Return Amount" << endl;
+        cout << "\t4. Refund" << endl;
         cout << "\t5. Exit" << endl;
         cout << "\tEnter Choice: ";
-        cin >> val;
+        cin >> val; // Get the user's choice
 
         if (val == 1)
         {
-            system("cls"); // for hiding previous output;
+            system("cls"); // Clear the console screen
             string name, rollno, address;
             cout << "\tEnter name of Student: ";
             cin >> name;
@@ -315,9 +364,10 @@ int main()
             cin >> address;
             s.setAddress(address);
 
+            // Reserve a bed for the student
             if (h.getBed() > 0 && h.reserve(name, rollno, filePath))
             {
-                ofstream outFile(filePath + "Student.txt", ios::app);
+                ofstream outFile(filePath + "Student.txt", ios::app); // Append student details to the file
                 outFile << "\t" << s.getName() << "  :  " << s.getRollNo() << " : " << s.getAddress() << endl;
                 outFile.close();
             }
@@ -325,49 +375,39 @@ int main()
             {
                 cout << "\tSorry, no bed available!!" << endl;
             }
-            Sleep(5000);
+            Sleep(3000); // Wait for 3 seconds
         }
         else if (val == 2)
         {
-            system("cls");
-            takeHostelComplaint(filePath);
-            Sleep(3000);
+            system("cls");                 // Clear the console screen
+            takeHostelComplaint(filePath); // Record hostel complaint
+            Sleep(3000);                   // Wait for 3 seconds
         }
         else if (val == 3)
         {
-            system("cls");
-            takeMessComplaint(filePath);
-            Sleep(3000);
+            system("cls");               // Clear the console screen
+            takeMessComplaint(filePath); // Record mess complaint
+            Sleep(3000);                 // Wait for 3 seconds
         }
         else if (val == 4)
         {
-            system("cls");
-            string rollno;
-            cout << "\tEnter Rollno of Student: ";
-            cin >> rollno;
-
-            if (h.returnBed(rollno, filePath))
-            {
-                cout << "\tMoney returned successfully!" << endl;
-            }
-            else
-            {
-                cout << "\tReturn operation failed or student not found!" << endl;
-            }
-            Sleep(5000);
+            system("cls"); // Clear the console screen
+            string rollNo;
+            cout << "\tEnter RollNo to return bed: ";
+            cin >> rollNo;
+            h.returnRent(rollNo, filePath); // Process bed return and rent refund
+            Sleep(3000);                    // Wait for 3 seconds
         }
         else if (val == 5)
         {
-            system("cls");
-            exit = true;
-            cout << "Good luck" << endl;
-            Sleep(3000);
+            exit = true; // Set exit flag to true to break the loop
+            cout << "\tGood Luck ";
+            Sleep(3000); // Wait for 3 seconds
+        }
+        else
+        {
+            cout << "\tInvalid choice! Please try again." << endl; // Invalid choice message
         }
     }
-
-    // Update the file with the final number of beds before exiting
-    ofstream finalOut(filePath + "Hostel.txt");
-    finalOut << "\t" << h.getName() << " : " << h.getRent() << " : " << h.getBed() << endl;
-    finalOut.close();
-    return 0;
+    return 0; // End of program
 }
